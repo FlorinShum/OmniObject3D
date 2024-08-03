@@ -5,6 +5,7 @@ import mathutils
 import numpy as np
 import pdb
 import argparse
+import math
 
 
 DEBUG = False
@@ -19,12 +20,12 @@ DEPTH_FORMAT = 'OPEN_EXR'
 RANDOM_VIEWS = False
 UPPER_VIEWS = False # True by default
 ANCHOR_VIEWS = True
-CIRCLE_FIXED_START = (.3,0,0)
+CIRCLE_FIXED_START = (.2,0,0)
 engine = 'BLENDER_EEVEE'
 
 if ANCHOR_VIEWS:
-    num_horizontal_views = 8
-    elevation_degrees = [0, -15, 15, -30, 30]
+    num_horizontal_views = 16
+    elevation_degrees = [0]
     elevation_radians = np.radians(elevation_degrees)
     azimuth_degrees = np.linspace(0, 2 * np.pi, num_horizontal_views, endpoint=False)
     rotation_euler_settings = np.zeros((num_horizontal_views, 3))
@@ -305,29 +306,20 @@ if __name__ == "__main__":
     argv = sys.argv[sys.argv.index("--") + 1 :]
     args = parser.parse_args(argv)
 
-    light = bpy.data.lights['Light']
-    light.type = 'SUN'
-    light.use_shadow = False
-    # Possibly disable specular shading:
-    light.specular_factor = 0.0
-    light.energy = 10.0
-
-    # Add another light source so stuff facing away from light is not completely dark
-    bpy.ops.object.light_add(type='SUN')
-    light2 = bpy.data.lights['Sun']
-    light2.use_shadow = False
-    light2.specular_factor = 0.0
-    light2.energy = 1
-    bpy.data.objects['Sun'].rotation_euler = bpy.data.objects['Light'].rotation_euler
-    bpy.data.objects['Sun'].rotation_euler[0] += 180
+    from mathutils import Vector, Matrix
+    world_tree = bpy.context.scene.world.node_tree
+    back_node = world_tree.nodes['Background']
+    env_light = 0.5
+    back_node.inputs['Color'].default_value = Vector([env_light, env_light, env_light, 1.0])
+    back_node.inputs['Strength'].default_value = 1.0
 
     obj_path = args.obj_path
 
-    scan_files = os.listdir(os.path.join(obj_path, 'Scan'))
+    scan_files = os.listdir(os.path.join(obj_path, 'meshes'))
     for scan_file in scan_files:
         if '.obj' not in scan_file:
             continue
-        filepath = os.path.join(obj_path, 'Scan', scan_file)
+        filepath = os.path.join(obj_path, 'meshes', scan_file)
         
         instance_path = "/".join(obj_path.split("/")[-2:])
         render_path = os.path.join(args.output, instance_path, "render")
@@ -354,6 +346,9 @@ if __name__ == "__main__":
             continue
         scaleObject(obj, scale)
         obj.select_set(True) # Blender 2.8x
+
+        obj.rotation_euler[0] -= math.pi / 2
+        obj.rotation_euler[2] -= math.pi / 2
 
         render_once(render_path, scale, args)
         bpy.ops.object.delete()

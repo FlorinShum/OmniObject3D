@@ -84,13 +84,14 @@ if __name__ == "__main__":
 
     for category in os.listdir(omni3d_root):
         category_path = osp.join(omni3d_root, category)
-        for instance in os.listdir(category_path):
-            if '.txt' in instance:
-                instance_path = osp.join(category_path, instance)
-                os.remove(instance_path)
-            else:
-                instance_path = osp.join(category, instance)
-                instance_list.append(instance_path)
+        # for instance in os.listdir(category_path):
+        #     if '.txt' in instance:
+        #         instance_path = osp.join(category_path, instance)
+        #         os.remove(instance_path)
+        #     else:
+        #         instance_path = osp.join(category, instance)
+        #         instance_list.append(instance_path)
+        instance_list.append(category_path)
 
     limit_num = len(instance_list) if args.limit_num < 0 else args.limit_num
     instance_list = sorted(instance_list)
